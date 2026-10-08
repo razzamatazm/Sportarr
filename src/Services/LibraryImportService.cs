@@ -746,6 +746,7 @@ public class LibraryImportService
                                     Languages = request.Languages ?? new List<string>(),
                                     IndexerFlags = request.IndexerFlags,
                                     IsIptvRecording = isIptvRecording,
+                                    CustomFormatScore = await ImportedFormatScoreAsync(request, existingEvent),
                                     PartName = partName,
                                     PartNumber = partNumber,
                                     Added = DateTime.UtcNow,
@@ -941,6 +942,7 @@ public class LibraryImportService
                             OriginalTitle = request.OriginalTitle,
                             Languages = request.Languages ?? new List<string>(),
                             IndexerFlags = request.IndexerFlags,
+                            CustomFormatScore = await ImportedFormatScoreAsync(request, newEvent),
                             PartName = partName,
                             PartNumber = partNumber,
                             Added = DateTime.UtcNow,
@@ -1764,6 +1766,15 @@ public class LibraryImportService
         _qualityProfiles ??= await _db.QualityProfiles.AsNoTracking().ToListAsync();
         return RssSyncService.ResolveQualityProfile(evt, _qualityProfiles);
     }
+
+    /// <summary>
+    /// The custom format score a library import stores on its new file, read
+    /// from the name the upgrade decision scored. Left at 0, every release
+    /// with a positive score would look like an upgrade over this file.
+    /// </summary>
+    private async Task<int> ImportedFormatScoreAsync(FileImportRequest request, Event evt) =>
+        await FormatScoreAsync(request.OriginalTitle ?? Path.GetFileNameWithoutExtension(request.FilePath),
+            await QualityProfileAsync(evt));
 
     private async Task<int> FormatScoreAsync(string title, QualityProfile? profile)
     {
